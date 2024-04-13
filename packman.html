@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Simple Rally-X with Effects</title>
+<style>
+  body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #ddd; }
+  canvas { background: #000; display: block; margin-bottom: 10px; }
+  .controller { text-align: center; }
+  button { width: 60px; height: 30px; margin: 2px; }
+</style>
+</head>
+<body>
+<canvas id="rallyX" width="400" height="300"></canvas>
+<div class="controller">
+  <button onclick="move('Left')">Left</button>
+  <button onclick="move('Up')">Up</button>
+  <button onclick="move('Down')">Down</button>
+  <button onclick="move('Right')">Right</button>
+</div>
+<script>
+  const canvas = document.getElementById('rallyX');
+  const ctx = canvas.getContext('2d');
+
+  const scale = 20;
+  const rows = canvas.height / scale;
+  const columns = canvas.width / scale;
+  let obstacles = [];
+  let effects = [];
+
+  function Car() {
+    this.x = scale * 5;
+    this.y = scale * 5;
+    this.xSpeed = scale * 1;
+    this.ySpeed = 0;
+
+    this.draw = function() {
+      ctx.fillStyle = 'red';
+      ctx.fillRect(this.x, this.y, scale, scale);
+      this.emitEffect();
+    }
+
+    this.update = function() {
+      this.x += this.xSpeed;
+      this.y += this.ySpeed;
+      this.checkCollision();
+      this.keepWithinBounds();
+    }
+
+    this.changeDirection = function(direction) {
+      switch(direction) {
+        case 'Left':
+          this.xSpeed = -scale;
+          this.ySpeed = 0;
+          break;
+        case 'Right':
+          this.xSpeed = scale;
+          this.ySpeed = 0;
+          break;
+        case 'Up':
+          this.xSpeed = 0;
+          this.ySpeed = -scale;
+          break;
+        case 'Down':
+          this.xSpeed = 0;
+          this.ySpeed = scale;
+          break;
+      }
+    }
+
+    this.emitEffect = function() {
+      let effect = {
+        x: this.x + scale / 2,
+        y: this.y + scale / 2,
+        size: scale / 4,
+        alpha: 1
+      };
+      effects.push(effect);
+    }
+
+    this.checkCollision = function() {
+      obstacles.forEach(obstacle => {
+        if (this.x === obstacle.x && this.y === obstacle.y) {
+          this.x -= this.xSpeed;
+          this.y -= this.ySpeed;
+        }
+      });
+    }
+
+    this.keepWithinBounds = function() {
+      if (this.x >= canvas.width) {
+        this.x = 0;
+      } else if (this.x < 0) {
+        this.x = canvas.width - scale;
+      }
+      if (this.y >= canvas.height) {
+        this.y = 0;
+      } else if (this.y < 0) {
+        this.y = canvas.height - scale;
+      }
+    }
+  }
+
+  function drawObstacles() {
+    ctx.fillStyle = 'blue';
+    obstacles.forEach(obstacle => {
+      ctx.fillRect(obstacle.x, obstacle.y, scale, scale);
+    });
+  }
+
+  function drawEffects() {
+    effects.forEach((effect, index) => {
+      if (effect.alpha <= 0) {
+        effects.splice(index, 1);
+      } else {
+        ctx.fillStyle = `rgba(255, 255, 0, ${effect.alpha})`;
+        ctx.beginPath();
+        ctx.arc(effect.x, effect.y, effect.size, 0, 2 * Math.PI);
+        ctx.fill();
+        effect.size += 0.5;
+        effect.alpha -= 0.05;
+      }
+    });
+  }
+
+  function createObstacles() {
+    for (let i = 0; i < 10; i++) {
+      let x = Math.floor(Math.random() * columns) * scale;
+      let y = Math.floor(Math.random() * rows) * scale;
+      obstacles.push({x: x, y: y});
+    }
+  }
+
+  const car = new Car();
+  createObstacles();
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawObstacles();
+    drawEffects();
+    car.update();
+    car.draw();
+  }
+  setInterval(gameLoop, 100);
+
+  function move(direction) {
+    car.changeDirection(direction);
+  }
+</script>
+</body>
+</html>
